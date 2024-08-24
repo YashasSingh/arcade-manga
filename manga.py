@@ -1,5 +1,6 @@
 import os
 import time
+import zipfile
 from PIL import Image
 from unihiker import Display, Button
 
@@ -8,10 +9,26 @@ display = Display()
 button_a = Button('A')  # Left button
 button_b = Button('B')  # Right button
 
-# Path to the folder with images (assuming the USB drive is mounted at /mnt/usb)
-image_folder = "/mnt/usb/images/"
+# Paths to folders
+zip_folder = "/mnt/usb/zipped_images/"   # Folder with ZIP files
+image_folder = "/mnt/usb/unzipped_images/"  # Folder for extracted images
 
-# List all image files in the folder (you can add more extensions if needed)
+# Ensure the destination folder exists
+os.makedirs(image_folder, exist_ok=True)
+
+# Function to unzip files
+def unzip_files(source_folder, destination_folder):
+    for file_name in os.listdir(source_folder):
+        if file_name.endswith('.zip'):
+            zip_path = os.path.join(source_folder, file_name)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(destination_folder)
+            print(f"Extracted: {file_name}")
+
+# Unzip files from the zip folder to the image folder
+unzip_files(zip_folder, image_folder)
+
+# List all image files in the unzipped folder (you can add more extensions if needed)
 image_files = [f for f in os.listdir(image_folder) if f.endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
 
 # Sort the files if necessary
