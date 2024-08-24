@@ -49,8 +49,11 @@ def display_image(image_path):
     display.show_image(image)
 
 # Function to display a prompt
-def display_prompt():
-    display.show_text("Continue to next chapter?\nA: Yes  B: No", font_size=24)
+def display_prompt(direction):
+    if direction == "forward":
+        display.show_text("Continue to next chapter?\nA: Yes  B: No", font_size=24)
+    elif direction == "backward":
+        display.show_text("Go back to previous chapter?\nA: Yes  B: No", font_size=24)
 
 # Indexes for current page and chapter
 current_page_index = 0
@@ -65,37 +68,57 @@ try:
         if all_pages:
             # Check if the left button is pressed (previous page)
             if button_a.is_pressed():
-                current_page_index = (current_page_index - 1) % len(all_pages)
-                display_image(all_pages[current_page_index])
+                if current_page_index == 0:  # First page of current chapter
+                    if current_chapter_index > 0:  # Not the first chapter
+                        display_prompt("backward")
+                        time.sleep(0.5)  # Delay for prompt
+
+                        while True:
+                            if button_a.is_pressed():  # Go back to the previous chapter
+                                current_chapter_index -= 1
+                                chapter_pages, _ = get_all_pages(chapter_paths[current_chapter_index])
+                                all_pages = chapter_pages + all_pages  # Prepend new pages
+                                current_page_index = len(chapter_pages) - 1  # Set to last page of the previous chapter
+                                display_image(all_pages[current_page_index])
+                                time.sleep(0.5)  # Debounce delay
+                                break
+
+                            elif button_b.is_pressed():  # Stay on the first page
+                                display_image(all_pages[current_page_index])
+                                time.sleep(0.5)  # Debounce delay
+                                break
+                    else:
+                        display_image(all_pages[current_page_index])
+                else:
+                    current_page_index -= 1
+                    display_image(all_pages[current_page_index])
                 time.sleep(0.5)  # Debounce delay
 
             # Check if the right button is pressed (next page)
             if button_b.is_pressed():
-                # If at the last page of the current chapter, ask to continue
-                if current_page_index == len(all_pages) - 1:
-                    display_prompt()
-                    time.sleep(0.5)  # Delay for prompt
+                if current_page_index == len(all_pages) - 1:  # Last page of current chapter
+                    if current_chapter_index < len(chapter_paths) - 1:  # Not the last chapter
+                        display_prompt("forward")
+                        time.sleep(0.5)  # Delay for prompt
 
-                    while True:
-                        if button_a.is_pressed():  # Continue to next chapter
-                            current_chapter_index += 1
-                            # Load the next chapter
-                            chapter_pages, _ = get_all_pages(chapter_paths[current_chapter_index])
-                            all_pages.extend(chapter_pages)
-                            current_page_index += 1
-                            display_image(all_pages[current_page_index])
-                            time.sleep(0.5)  # Debounce delay
-                            break
+                        while True:
+                            if button_a.is_pressed():  # Continue to next chapter
+                                current_chapter_index += 1
+                                chapter_pages, _ = get_all_pages(chapter_paths[current_chapter_index])
+                                all_pages.extend(chapter_pages)
+                                current_page_index += 1
+                                display_image(all_pages[current_page_index])
+                                time.sleep(0.5)  # Debounce delay
+                                break
 
-                        elif button_b.is_pressed():  # Stay on last page
-                            display_image(all_pages[current_page_index])
-                            time.sleep(0.5)  # Debounce delay
-                            break
-
+                            elif button_b.is_pressed():  # Stay on the last page
+                                display_image(all_pages[current_page_index])
+                                time.sleep(0.5)  # Debounce delay
+                                break
                 else:
-                    current_page_index = (current_page_index + 1) % len(all_pages)
+                    current_page_index += 1
                     display_image(all_pages[current_page_index])
-                    time.sleep(0.5)  # Debounce delay
+                time.sleep(0.5)  # Debounce delay
 
         else:
             print("No pages found.")
