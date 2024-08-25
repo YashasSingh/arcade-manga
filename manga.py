@@ -8,6 +8,7 @@ from unihiker import Display, Button
 display = Display()
 button_a = Button('A')  # Left button
 button_b = Button('B')  # Right button
+button_home = Button('Home')  # Home button
 
 # Paths to folders
 zip_folder = "/mnt/usb/manga_zips/"    # Folder with ZIP files
@@ -28,101 +29,120 @@ def unzip_manga(source_folder, destination_folder):
 # Unzip manga files
 unzip_manga(zip_folder, manga_folder)
 
-# Function to list all image files in the chapter folders
-def get_all_pages(manga_folder):
-    pages = []
-    chapter_paths = sorted([os.path.join(manga_folder, folder) for folder in os.listdir(manga_folder)])
+# Function to list all manga directories
+def get_all_mangas(manga_folder):
+    mangas = [folder for folder in os.listdir(manga_folder) if os.path.isdir(os.path.join(manga_folder, folder))]
+    return sorted(mangas)
+
+# Function to list all chapters and their pages
+def get_all_chapters(manga_path):
+    chapters = {}
+    chapter_paths = sorted([os.path.join(manga_path, folder) for folder in os.listdir(manga_path) if os.path.isdir(os.path.join(manga_path, folder))])
     
     for chapter_path in chapter_paths:
-        if os.path.isdir(chapter_path):
-            for page in sorted(os.listdir(chapter_path)):
-                if page.endswith(('.png', '.jpg', '.jpeg', '.bmp')):
-                    pages.append(os.path.join(chapter_path, page))
-    return pages, chapter_paths
+        pages = sorted([os.path.join(chapter_path, page) for page in os.listdir(chapter_path)
+                        if page.endswith(('.png', '.jpg', '.jpeg', '.bmp'))])
+        if pages:
+            chapter_name = os.path.basename(chapter_path)
+            chapters[chapter_name] = pages
+    return chapters
 
-# Get a list of all pages across all chapters
-all_pages, chapter_paths = get_all_pages(manga_folder)
+# Function to display a list of mangas
+def display_manga_selection(mangas):
+    display.clear()
+    text = "Select a manga:\n"
+    for i, manga in enumerate(mangas):
+        text += f"{i + 1}: {manga}\n"
+    display.show_text(text, font_size=20)
+
+# Function to display a list of chapters
+def display_chapter_selection(chapters):
+    display.clear()
+    text = "Select a chapter:\n"
+    for i, chapter in enumerate(chapters):
+        text += f"{i + 1}: {chapter}\n"
+    display.show_text(text, font_size=20)
+
+# Function to select a manga
+def select_manga():
+    mangas = get_all_mangas(manga_folder)
+    current_selection = 0
+    display_manga_selection(mangas)
+
+    while True:
+        if button_a.is_pressed():
+            current_selection = (current_selection - 1) % len(mangas)
+            display.show_text(f"Selected: {mangas[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
+            time.sleep(0.5)  # Debounce delay
+
+        elif button_b.is_pressed():
+            current_selection = (current_selection + 1) % len(mangas)
+            display.show_text(f"Selected: {mangas[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
+            time.sleep(0.5)  # Debounce delay
+
+        elif button_b.is_pressed() and button_b.duration() > 2:  # Confirm selection by holding B
+            return mangas[current_selection]
+
+# Function to select a chapter
+def select_chapter(manga_path):
+    chapters = get_all_chapters(manga_path)
+    chapter_names = list(chapters.keys())
+    current_selection = 0
+    display_chapter_selection(chapter_names)
+
+    while True:
+        if button_a.is_pressed():
+            current_selection = (current_selection - 1) % len(chapter_names)
+            display.show_text(f"Selected: {chapter_names[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
+            time.sleep(0.5)  # Debounce delay
+
+        elif button_b.is_pressed():
+            current_selection = (current_selection + 1) % len(chapter_names)
+            display.show_text(f"Selected: {chapter_names[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
+            time.sleep(0.5)  # Debounce delay
+
+        elif button_b.is_pressed() and button_b.duration() > 2:  # Confirm selection by holding B
+            return chapters[chapter_names[current_selection]]
 
 # Function to display an image on the UniHiker screen
 def display_image(image_path):
     image = Image.open(image_path)
     display.show_image(image)
 
-# Function to display a prompt
-def display_prompt(direction):
-    if direction == "forward":
-        display.show_text("Continue to next chapter?\nA: Yes  B: No", font_size=24)
-    elif direction == "backward":
-        display.show_text("Go back to previous chapter?\nA: Yes  B: No", font_size=24)
-
-# Indexes for current page and chapter
-current_page_index = 0
-current_chapter_index = 0
-
-# Display the first page initially
-if all_pages:
-    display_image(all_pages[current_page_index])
-
-try:
+def main():
     while True:
+        selected_manga = select_manga()
+        manga_path = os.path.join(manga_folder, selected_manga)
+        all_pages = select_chapter(manga_path)
+        current_page_index = 0
+
         if all_pages:
-            # Check if the left button is pressed (previous page)
-            if button_a.is_pressed():
-                if current_page_index == 0:  # First page of current chapter
-                    if current_chapter_index > 0:  # Not the first chapter
-                        display_prompt("backward")
-                        time.sleep(0.5)  # Delay for prompt
+            display_image(all_pages[current_page_index])
 
-                        while True:
-                            if button_a.is_pressed():  # Go back to the previous chapter
-                                current_chapter_index -= 1
-                                chapter_pages, _ = get_all_pages(chapter_paths[current_chapter_index])
-                                all_pages = chapter_pages + all_pages  # Prepend new pages
-                                current_page_index = len(chapter_pages) - 1  # Set to last page of the previous chapter
-                                display_image(all_pages[current_page_index])
-                                time.sleep(0.5)  # Debounce delay
-                                break
+        try:
+            while True:
+                if button_home.is_pressed():  # Return to manga selection
+                    break
 
-                            elif button_b.is_pressed():  # Stay on the first page
-                                display_image(all_pages[current_page_index])
-                                time.sleep(0.5)  # Debounce delay
-                                break
-                    else:
+                if all_pages:
+                    # Check if the left button is pressed (previous page)
+                    if button_a.is_pressed():
+                        current_page_index = max(0, current_page_index - 1)
                         display_image(all_pages[current_page_index])
+                        time.sleep(0.5)  # Debounce delay
+
+                    # Check if the right button is pressed (next page)
+                    if button_b.is_pressed():
+                        current_page_index = min(len(all_pages) - 1, current_page_index + 1)
+                        display_image(all_pages[current_page_index])
+                        time.sleep(0.5)  # Debounce delay
+
                 else:
-                    current_page_index -= 1
-                    display_image(all_pages[current_page_index])
-                time.sleep(0.5)  # Debounce delay
+                    print("No pages found.")
+                    break
 
-            # Check if the right button is pressed (next page)
-            if button_b.is_pressed():
-                if current_page_index == len(all_pages) - 1:  # Last page of current chapter
-                    if current_chapter_index < len(chapter_paths) - 1:  # Not the last chapter
-                        display_prompt("forward")
-                        time.sleep(0.5)  # Delay for prompt
+        except KeyboardInterrupt:
+            print("Stopped by user.")
 
-                        while True:
-                            if button_a.is_pressed():  # Continue to next chapter
-                                current_chapter_index += 1
-                                chapter_pages, _ = get_all_pages(chapter_paths[current_chapter_index])
-                                all_pages.extend(chapter_pages)
-                                current_page_index += 1
-                                display_image(all_pages[current_page_index])
-                                time.sleep(0.5)  # Debounce delay
-                                break
-
-                            elif button_b.is_pressed():  # Stay on the last page
-                                display_image(all_pages[current_page_index])
-                                time.sleep(0.5)  # Debounce delay
-                                break
-                else:
-                    current_page_index += 1
-                    display_image(all_pages[current_page_index])
-                time.sleep(0.5)  # Debounce delay
-
-        else:
-            print("No pages found.")
-            break
-
-except KeyboardInterrupt:
-    print("Stopped by user.")
+if __name__ == "__main__":
+    main()
