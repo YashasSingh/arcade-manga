@@ -2,10 +2,10 @@ import os
 import time
 import zipfile
 from PIL import Image
-from unihiker import Display, Button
+from unihiker import GUI, Button
 
-# Initialize display and buttons
-display = Display()
+# Initialize GUI and buttons
+gui = GUI()
 button_a = Button('A')  # Left button
 button_b = Button('B')  # Right button
 button_home = Button('Home')  # Home button
@@ -49,19 +49,19 @@ def get_all_chapters(manga_path):
 
 # Function to display a list of mangas
 def display_manga_selection(mangas):
-    display.clear()
+    gui.clear()
     text = "Select a manga:\n"
     for i, manga in enumerate(mangas):
         text += f"{i + 1}: {manga}\n"
-    display.show_text(text, font_size=20)
+    gui.label(text=text, x=10, y=10, font_size=20)
 
 # Function to display a list of chapters
 def display_chapter_selection(chapters):
-    display.clear()
+    gui.clear()
     text = "Select a chapter:\n"
     for i, chapter in enumerate(chapters):
         text += f"{i + 1}: {chapter}\n"
-    display.show_text(text, font_size=20)
+    gui.label(text=text, x=10, y=10, font_size=20)
 
 # Function to select a manga
 def select_manga():
@@ -72,77 +72,4 @@ def select_manga():
     while True:
         if button_a.is_pressed():
             current_selection = (current_selection - 1) % len(mangas)
-            display.show_text(f"Selected: {mangas[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
-            time.sleep(0.5)  # Debounce delay
-
-        elif button_b.is_pressed():
-            current_selection = (current_selection + 1) % len(mangas)
-            display.show_text(f"Selected: {mangas[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
-            time.sleep(0.5)  # Debounce delay
-
-        elif button_b.is_pressed() and button_b.duration() > 2:  # Confirm selection by holding B
-            return mangas[current_selection]
-
-# Function to select a chapter
-def select_chapter(manga_path):
-    chapters = get_all_chapters(manga_path)
-    chapter_names = list(chapters.keys())
-    current_selection = 0
-    display_chapter_selection(chapter_names)
-
-    while True:
-        if button_a.is_pressed():
-            current_selection = (current_selection - 1) % len(chapter_names)
-            display.show_text(f"Selected: {chapter_names[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
-            time.sleep(0.5)  # Debounce delay
-
-        elif button_b.is_pressed():
-            current_selection = (current_selection + 1) % len(chapter_names)
-            display.show_text(f"Selected: {chapter_names[current_selection]}\nA: Up  B: Down  Hold B: Confirm", font_size=20)
-            time.sleep(0.5)  # Debounce delay
-
-        elif button_b.is_pressed() and button_b.duration() > 2:  # Confirm selection by holding B
-            return chapters[chapter_names[current_selection]]
-
-# Function to display an image on the UniHiker screen
-def display_image(image_path):
-    image = Image.open(image_path)
-    display.show_image(image)
-
-def main():
-    while True:
-        selected_manga = select_manga()
-        manga_path = os.path.join(manga_folder, selected_manga)
-        all_pages = select_chapter(manga_path)
-        current_page_index = 0
-
-        if all_pages:
-            display_image(all_pages[current_page_index])
-
-        try:
-            while True:
-                if button_home.is_pressed():  # Return to manga selection
-                    break
-
-                if all_pages:
-                    # Check if the left button is pressed (previous page)
-                    if button_a.is_pressed():
-                        current_page_index = max(0, current_page_index - 1)
-                        display_image(all_pages[current_page_index])
-                        time.sleep(0.5)  # Debounce delay
-
-                    # Check if the right button is pressed (next page)
-                    if button_b.is_pressed():
-                        current_page_index = min(len(all_pages) - 1, current_page_index + 1)
-                        display_image(all_pages[current_page_index])
-                        time.sleep(0.5)  # Debounce delay
-
-                else:
-                    print("No pages found.")
-                    break
-
-        except KeyboardInterrupt:
-            print("Stopped by user.")
-
-if __name__ == "__main__":
-    main()
+            gui.label(text=f"Selected: {mangas[current_selection]}\nA: Up  B: Down  Hold B: Confir
