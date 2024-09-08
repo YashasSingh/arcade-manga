@@ -2,6 +2,9 @@
 
 # UniHiker Manga Reader
 
+![image](https://github.com/user-attachments/assets/accb8492-6219-49f9-a3c3-d6da268d77b3)
+
+
 The UniHiker Manga Reader is a simple, interactive manga reading application designed to run on a UniHiker device. It allows users to read manga chapters from a USB hard drive, navigate between pages, switch between chapters, and return to the manga selection menu with ease.
 
 ## Features
